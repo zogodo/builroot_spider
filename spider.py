@@ -1,6 +1,8 @@
 #!/bin/env python3
 # _*_ coding: UTF-8 _*_
 
+from genericpath import getsize
+import os
 import re
 import sys
 from os import mkdir
@@ -19,16 +21,37 @@ sem = asyncio.Semaphore(10)
 url = 'http://sources.buildroot.net/'
 
 async def get_raw(url):
-    async with sem: 
+    async with sem:
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as resp:
                 if resp.status == 200:
                     return await resp.read()
 
+async def get_size(url):
+    async with sem:
+        async with aiohttp.ClientSession() as session:
+            async with session.head(url) as resp:
+                if resp.status == 200:
+                    return resp.content_length
+
+async def get_raw_ensure(url, retries=20):
+    while retries > 0:
+        try:
+            retries -= 1
+            return await get_raw(url)
+        except KeyboardInterrupt:
+            raise
+        except:
+            pass
+
 async def Download(url):
     fName = urlparse(url).path
     fName = "img" + fName
-    data = await get_raw(url)
+    if os.path.exists(fName):
+        if os.path.getsize(fName) == await get_size(url):
+            print("file %s already exist." % fName)
+            return
+    data = await get_raw_ensure(url)
     print(len(data))
     print(fName)
     try:
@@ -47,7 +70,7 @@ async def Download(url):
 # r = requests.get(url)
 
 async def Anls(url):
-    res = await get_raw(url)
+    res = await get_raw_ensure(url)
     doc = html.fromstring(res.decode('utf-8'))
     links = doc.xpath("//tr[not(@class='d')]/td/a")
     xx = [Download(urljoin(url, link.get('href'))) for link in links]
