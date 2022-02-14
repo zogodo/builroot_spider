@@ -3,7 +3,9 @@
 
 import re
 import sys
-from urllib.parse import urljoin
+from os import mkdir
+from os.path import dirname
+from urllib.parse import urljoin, urlparse, urlsplit
 from xml.sax.handler import feature_external_ges
 import requests
 from lxml import html
@@ -23,6 +25,13 @@ async def get_raw(url):
                 if resp.status == 200:
                     return await resp.read()
 
+async def Download(url):
+    data = await get_raw(url)
+    fName = urlparse(url).path
+    mkdir(dirname(fName))
+    f = open(fName, 'wb')
+    f.write(data)
+
 # a = resp.read()
 # x = await a
 
@@ -36,11 +45,13 @@ f = open('index.html')
 g_links = []
 async def Anls(url):
     res = await get_raw(url)
-    doc = html.fromstring(res)
+    doc = html.fromstring(res.decode('utf-8'))
     links = doc.xpath("//tr[not(@class='d')]/td/a")
     g_links.extend(links)
+    xx = [Download(urljoin(url, link)) for link in links]
     links = doc.xpath("//tr[@class='d']/td/a")
-    await asyncio.wait([Anls(urljoin(url, link)) for link in links])
+    yy = [Anls(urljoin(url, link)) for link in links]
+    await asyncio.wait(xx + yy)
     # arr = []
     # for link in links:
     #     arr.append(Anls(urljoin(url, link)))
