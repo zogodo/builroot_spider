@@ -4,30 +4,47 @@
 import re
 import sys
 import requests
-from lxml import etree
+from lxml import html
+
+import asyncio
+import aiohttp
 
 url = 'http://sources.buildroot.net/'
-url = 'https://www.openguet.cn/lab/views/login.jsp'
+# url = 'https://www.openguet.cn/lab/views/login.jsp'
+# url = 'https://zogodo.github.io/'
 
-r = requests.get(url)
+# r = requests.get(url)
 
-print(r.status_code)
-print(r.text)
+f = open('index.html')
 
-html = re.findall(r'<a.+?href="(.+?)"', r.text)
-print(html)
+
+
+doc = html.fromstring(f.read())
+print(doc)
+
+for a in doc.xpath("//a"):
+    href = a.get('href')
+
+
+len(doc.xpath("//tr[@class='d']/td/a"))
+len(doc.xpath("//tr[not(@class='d')]/td/a"))
+
+# doc.xpath("//tr/td/a")[0].get("href")
+
+# html = re.findall(r'<a.+?href="(.+?)"', r.text)
+# print(html)
 
 sys.exit()
 
-html = re.findall(r'(<body>(.*\n)+</body>)', r.text)
-html = html[0][0]
-print(html)
+# html = re.findall(r'(<body>(.*\n)+</body>)', r.text)
+# html = html[0][0]
+# print(html)
 
 # sys.exit()
 
-html = etree.XML(html)
+html = html.XML(html)
 
-html = etree.tostring(html, pretty_print=True, encoding='utf-8')
+html = html.tostring(html, pretty_print=True, encoding='utf-8')
 
 print(html)
 
