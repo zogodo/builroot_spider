@@ -3,13 +3,29 @@
 
 import re
 import sys
+from urllib.parse import urljoin
+from xml.sax.handler import feature_external_ges
 import requests
 from lxml import html
 
+# from multiprocessing import Manager, Pool
+
 import asyncio
 import aiohttp
+sem = asyncio.Semaphore(10)
 
 url = 'http://sources.buildroot.net/'
+
+async def get_raw(url):
+    async with sem: 
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as resp:
+                if resp.status == 200:
+                    return await resp.read()
+
+# a = resp.read()
+# x = await a
+
 # url = 'https://www.openguet.cn/lab/views/login.jsp'
 # url = 'https://zogodo.github.io/'
 
@@ -17,6 +33,25 @@ url = 'http://sources.buildroot.net/'
 
 f = open('index.html')
 
+g_links = []
+async def Anls(url):
+    res = await get_raw(url)
+    doc = html.fromstring(res)
+    links = doc.xpath("//tr[not(@class='d')]/td/a")
+    g_links.extend(links)
+    links = doc.xpath("//tr[@class='d']/td/a")
+    await asyncio.wait([Anls(urljoin(url, link)) for link in links])
+    # arr = []
+    # for link in links:
+    #     arr.append(Anls(urljoin(url, link)))
+    # await asyncio.wait(arr)
+
+    # for link in links:
+    #     Anls(url)
+
+coroutine = Anls(url)
+loop = asyncio.get_event_loop()
+loop.run_until_complete(coroutine)
 
 
 doc = html.fromstring(f.read())
