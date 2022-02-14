@@ -26,11 +26,17 @@ async def get_raw(url):
                     return await resp.read()
 
 async def Download(url):
-    data = await get_raw(url)
     fName = urlparse(url).path
-    mkdir(dirname(fName))
-    f = open(fName, 'wb')
-    f.write(data)
+    fName = "img" + fName
+    data = await get_raw(url)
+    print(len(data))
+    print(fName)
+    try:
+        mkdir(dirname(fName))
+    except:
+        pass
+    with open(fName, 'wb') as f:
+        f.write(data)
 
 # a = resp.read()
 # x = await a
@@ -40,17 +46,13 @@ async def Download(url):
 
 # r = requests.get(url)
 
-f = open('index.html')
-
-g_links = []
 async def Anls(url):
     res = await get_raw(url)
     doc = html.fromstring(res.decode('utf-8'))
     links = doc.xpath("//tr[not(@class='d')]/td/a")
-    g_links.extend(links)
-    xx = [Download(urljoin(url, link)) for link in links]
+    xx = [Download(urljoin(url, link.get('href'))) for link in links]
     links = doc.xpath("//tr[@class='d']/td/a")
-    yy = [Anls(urljoin(url, link)) for link in links]
+    yy = [Anls(urljoin(url, link.get('href'))) for link in links]
     await asyncio.wait(xx + yy)
     # arr = []
     # for link in links:
