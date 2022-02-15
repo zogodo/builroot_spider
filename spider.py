@@ -5,7 +5,6 @@ from genericpath import getsize
 import os
 import re
 import sys
-from os import mkdir
 from os.path import dirname
 from urllib.parse import urljoin, urlparse, urlsplit
 from xml.sax.handler import feature_external_ges
@@ -51,11 +50,13 @@ async def Download(url):
         if os.path.getsize(fName) == await get_size(url):
             print("file %s already exist." % fName)
             return
+        else:
+            print("file %s is broken." % fName)
     data = await get_raw_ensure(url)
     print(len(data))
     print(fName)
     try:
-        mkdir(dirname(fName))
+        os.makedirs(dirname(fName))
     except:
         pass
     with open(fName, 'wb') as f:
