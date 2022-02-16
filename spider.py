@@ -15,7 +15,7 @@ from lxml import html
 
 import asyncio
 import aiohttp
-sem = asyncio.Semaphore(10)
+sem = asyncio.Semaphore(100)
 
 url = 'http://sources.buildroot.net/'
 
@@ -48,13 +48,12 @@ async def Download(url):
     fName = "img" + fName
     if os.path.exists(fName):
         if os.path.getsize(fName) == await get_size(url):
-            print("file %s already exist." % fName)
+            # print("file %s already exist." % fName)
             return
         else:
             print("file %s is broken." % fName)
     data = await get_raw_ensure(url)
-    print(len(data))
-    print(fName)
+    print("%s len=%d" % (fName, len(data)))
     try:
         os.makedirs(dirname(fName))
     except:
@@ -73,9 +72,9 @@ async def Download(url):
 async def Anls(url):
     res = await get_raw_ensure(url)
     doc = html.fromstring(res.decode('utf-8'))
-    links = doc.xpath("//tr[not(@class='d')]/td/a")
+    links = doc.xpath("//tr[not(@class='d')]/td/a[not(starts-with(@href,'..'))]")
     xx = [Download(urljoin(url, link.get('href'))) for link in links]
-    links = doc.xpath("//tr[@class='d']/td/a")
+    links = doc.xpath("//tr[@class='d']/td/a[not(starts-with(@href,'..'))]")
     yy = [Anls(urljoin(url, link.get('href'))) for link in links]
     await asyncio.wait(xx + yy)
     # arr = []
@@ -89,6 +88,8 @@ async def Anls(url):
 coroutine = Anls(url)
 loop = asyncio.get_event_loop()
 loop.run_until_complete(coroutine)
+
+sys.exit()
 
 
 doc = html.fromstring(f.read())
