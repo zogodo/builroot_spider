@@ -48,12 +48,12 @@ async def Download(url):
     fName = "img" + fName
     if os.path.exists(fName):
         if os.path.getsize(fName) == await get_size(url):
-            # print("file %s already exist." % fName)
+            # print("already exist  %s" % fName)
             return
         else:
-            print("file %s is broken." % fName)
+            print("file is broken %s" % fName)
     data = await get_raw_ensure(url)
-    print("%s len=%d" % (fName, len(data)))
+    print("len=%10d %s" % (len(data), fName))
     try:
         os.makedirs(dirname(fName))
     except:
