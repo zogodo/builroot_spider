@@ -16,7 +16,7 @@ from lxml import html
 
 import asyncio
 import aiohttp
-sem = asyncio.Semaphore(100)
+sem = asyncio.Semaphore(25)
 
 url = 'http://sources.buildroot.net/'
 
@@ -53,7 +53,7 @@ async def Download(url):
     fName = "img" + fName
     if os.path.exists(fName):
         pbar.update(1)
-        return
+        # return
         if os.path.getsize(fName) == await get_size(url):
             # tqdm.write("already exist  %s" % fName)
             return
