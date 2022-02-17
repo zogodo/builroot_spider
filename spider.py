@@ -52,8 +52,9 @@ async def Download(url):
     fName = urlparse(url).path
     fName = "img" + fName
     if os.path.exists(fName):
-        # if os.path.getsize(fName) == await get_size(url):
-        if os.path.getsize(fName):
+        pbar.update(1)
+        return
+        if os.path.getsize(fName) == await get_size(url):
             # tqdm.write("already exist  %s" % fName)
             return
         else:
