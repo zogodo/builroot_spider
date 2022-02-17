@@ -5,6 +5,7 @@ from genericpath import getsize
 import os
 import re
 import sys
+from tqdm import tqdm
 from os.path import dirname
 from urllib.parse import urljoin, urlparse, urlsplit
 from xml.sax.handler import feature_external_ges
@@ -18,6 +19,8 @@ import aiohttp
 sem = asyncio.Semaphore(100)
 
 url = 'http://sources.buildroot.net/'
+
+pbar = tqdm(total=1)
 
 async def get_raw(url):
     async with sem:
@@ -37,7 +40,9 @@ async def get_raw_ensure(url, retries=20):
     while retries > 0:
         try:
             retries -= 1
-            return await get_raw(url)
+            content = await get_raw(url)
+            pbar.update(1)
+            return content
         except KeyboardInterrupt:
             raise
         except:
@@ -47,13 +52,14 @@ async def Download(url):
     fName = urlparse(url).path
     fName = "img" + fName
     if os.path.exists(fName):
-        if os.path.getsize(fName) == await get_size(url):
-            # print("already exist  %s" % fName)
+        # if os.path.getsize(fName) == await get_size(url):
+        if os.path.getsize(fName):
+            # tqdm.write("already exist  %s" % fName)
             return
         else:
-            print("file is broken %s" % fName)
+            tqdm.write("file is broken %s" % fName)
     data = await get_raw_ensure(url)
-    print("len=%10d %s" % (len(data), fName))
+    tqdm.write("len=%10d %s" % (len(data), fName))
     try:
         os.makedirs(dirname(fName))
     except:
@@ -76,7 +82,9 @@ async def Anls(url):
     xx = [Download(urljoin(url, link.get('href'))) for link in links]
     links = doc.xpath("//tr[@class='d']/td/a[not(starts-with(@href,'..'))]")
     yy = [Anls(urljoin(url, link.get('href'))) for link in links]
-    await asyncio.wait(xx + yy)
+    zz = xx + yy
+    pbar.total += len(zz)
+    await asyncio.wait(zz)
     # arr = []
     # for link in links:
     #     arr.append(Anls(urljoin(url, link)))
