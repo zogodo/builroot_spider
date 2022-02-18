@@ -17,6 +17,7 @@ from lxml import html
 import asyncio
 import aiohttp
 sem = asyncio.Semaphore(25)
+hsem = asyncio.Semaphore(100)
 
 url = 'http://sources.buildroot.net/'
 
@@ -35,7 +36,7 @@ async def get_raw(url):
                     raise OSError('get_raw() error!')
 
 async def get_size(url):
-    async with sem:
+    async with hsem:
         async with aiohttp.ClientSession() as session:
             async with session.head(url) as resp:
                 if resp.status == 200:
