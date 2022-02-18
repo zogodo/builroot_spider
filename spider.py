@@ -27,7 +27,12 @@ async def get_raw(url):
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as resp:
                 if resp.status == 200:
-                    return await resp.read()
+                    content = await resp.read()
+                    if resp.content_length and len(content) != resp.content_length:
+                        raise OSError('get_raw() len error!')
+                    return content
+                else:
+                    raise OSError('get_raw() error!')
 
 async def get_size(url):
     async with sem:
@@ -35,6 +40,19 @@ async def get_size(url):
             async with session.head(url) as resp:
                 if resp.status == 200:
                     return resp.content_length
+                else:
+                    raise OSError('get_size() error!')
+
+async def get_size_ensure(url, retries=20):
+    while retries > 0:
+        try:
+            retries -= 1
+            return await get_size(url)
+        except KeyboardInterrupt:
+            raise
+        except:
+            pass
+    return 0
 
 async def get_raw_ensure(url, retries=20):
     while retries > 0:
@@ -47,15 +65,22 @@ async def get_raw_ensure(url, retries=20):
             raise
         except:
             pass
+    pbar.update(1)
+    return b''
 
 async def Download(url):
     fName = urlparse(url).path
     fName = "img" + fName
     if os.path.exists(fName):
-        pbar.update(1)
         # return
-        if os.path.getsize(fName) == await get_size(url):
+        rSize = await get_size_ensure(url)
+        if os.path.getsize(fName) == rSize:
             # tqdm.write("already exist  %s" % fName)
+            pbar.update(1)
+            return
+        elif not rSize:
+            tqdm.write("file no length %s" % fName)
+            pbar.update(1)
             return
         else:
             tqdm.write("file is broken %s" % fName)
