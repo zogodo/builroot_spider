@@ -11,21 +11,23 @@ from urllib.parse import urljoin, urlparse, urlsplit
 from xml.sax.handler import feature_external_ges
 import requests
 from lxml import html
+import aiohttp_socks
 
 # from multiprocessing import Manager, Pool
 
 import asyncio
 import aiohttp
-sem = asyncio.Semaphore(25)
-hsem = asyncio.Semaphore(100)
+sem = asyncio.Semaphore(10)
+hsem = asyncio.Semaphore(20)
 
 url = 'http://sources.buildroot.net/'
 
 pbar = tqdm(total=1)
 
 async def get_raw(url):
+    conn = aiohttp_socks.ProxyConnector.from_url('socks5://127.0.0.1:1080')
     async with sem:
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(connector=conn) as session:
             async with session.get(url) as resp:
                 if resp.status == 200:
                     content = await resp.read()
@@ -36,8 +38,9 @@ async def get_raw(url):
                     raise OSError('get_raw() error!')
 
 async def get_size(url):
+    conn = aiohttp_socks.ProxyConnector.from_url('socks5://127.0.0.1:1080')
     async with hsem:
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(connector=conn) as session:
             async with session.head(url) as resp:
                 if resp.status == 200:
                     return resp.content_length
@@ -53,7 +56,7 @@ async def get_size_ensure(url, retries=20):
             raise
         except:
             pass
-    return 0
+    return -1
 
 async def get_raw_ensure(url, retries=20):
     while retries > 0:
@@ -77,6 +80,10 @@ async def Download(url):
         rSize = await get_size_ensure(url)
         if os.path.getsize(fName) == rSize:
             # tqdm.write("already exist  %s" % fName)
+            pbar.update(1)
+            return
+        elif rSize == -1:
+            tqdm.write("head tried 20  %s" % fName)
             pbar.update(1)
             return
         elif not rSize:
@@ -110,8 +117,9 @@ async def Anls(url):
     links = doc.xpath("//tr[@class='d']/td/a[not(starts-with(@href,'..'))]")
     yy = [Anls(urljoin(url, link.get('href'))) for link in links]
     zz = xx + yy
-    pbar.total += len(zz)
-    await asyncio.wait(zz)
+    if len(zz):
+        pbar.total += len(zz)
+        await asyncio.wait(zz)
     # arr = []
     # for link in links:
     #     arr.append(Anls(urljoin(url, link)))
