@@ -12,6 +12,7 @@ from xml.sax.handler import feature_external_ges
 import requests
 from lxml import html
 import aiohttp_socks
+import shelve
 
 # from multiprocessing import Manager, Pool
 
@@ -115,7 +116,13 @@ async def Download(url):
 # r = requests.get(url)
 
 async def Anls(url):
-    res = await get_raw_ensure(url)
+    if url in list_cache:
+        res = list_cache[url]
+    else:
+        res = await get_raw_ensure(url)
+        if not res:
+            tqdm.write('url download failed[%s]' % url)
+        list_cache[url] = res
     doc = html.fromstring(res.decode('utf-8'))
     links = doc.xpath("//tr[not(@class='d')]/td/a[not(starts-with(@href,'..'))]")
     xx = [Download(urljoin(url, link.get('href'))) for link in links]
@@ -133,16 +140,18 @@ async def Anls(url):
     # for link in links:
     #     Anls(url)
 
-if os.path.exists("size_cache.json"):
-    f = open("size_cache.json")
-    size_cache = eval(f.read())
+size_cache = shelve.open('size_cache.db')
+tqdm.write('size_cache len[%d]' % len(size_cache))
+list_cache = shelve.open('list_cache.db')
+tqdm.write('list_cache len[%d]' % len(list_cache))
+
 coroutine = Anls(url)
 loop = asyncio.get_event_loop()
 try:
     loop.run_until_complete(coroutine)
 finally:
-    with open("size_cache.json", "w") as f:
-        f.write(repr(size_cache))
+    size_cache.close()
+    list_cache.close()
 
 sys.exit()
 
