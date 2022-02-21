@@ -47,11 +47,16 @@ async def get_size(url):
                 else:
                     raise OSError('get_size() error!')
 
+size_cache = {}
 async def get_size_ensure(url, retries=20):
+    if url in size_cache:
+        return size_cache[url]
     while retries > 0:
         try:
             retries -= 1
-            return await get_size(url)
+            sz = await get_size(url)
+            size_cache[url] = sz
+            return sz
         except KeyboardInterrupt:
             raise
         except:
@@ -128,9 +133,16 @@ async def Anls(url):
     # for link in links:
     #     Anls(url)
 
+if os.path.exists("size_cache.json"):
+    f = open("size_cache.json")
+    size_cache = eval(f.read())
 coroutine = Anls(url)
 loop = asyncio.get_event_loop()
-loop.run_until_complete(coroutine)
+try:
+    loop.run_until_complete(coroutine)
+finally:
+    with open("size_cache.json", "w") as f:
+        f.write(repr(size_cache))
 
 sys.exit()
 
